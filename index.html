@@ -660,15 +660,38 @@ function vCeo(){
 }
 
 // ---------- My tasks ----------
-function vWhoAmI(){
-  const names=[...new Set(S.tasks.flatMap(t=>[...picList(t),...supList(t)]))].sort((a,b)=>a.localeCompare(b));
-  return `<div class="pagehead"><div><h2>Which tasks are yours?</h2><p>Pick the name (or names) you appear as in the PIC and Support columns. You only need to do this once.</p></div></div>
-  <div class="card whoami"><div class="pick" id="namepick">${names.map(n=>`<label><input type="checkbox" value="${esc(n)}">${esc(n)}</label>`).join("")}</div>
-  <div class="fld"><label for="ownname">Not listed? Type your name as it should appear</label><input id="ownname" placeholder="e.g. K.Vimol"></div>
+// Match the signed-in email to a PIC name: directory first, then "first.l@..." against "First L."
+function emailNameMatches(){
+  const em=String(S.me?.email||"").trim().toLowerCase(); if(!em) return [];
+  const dir=(S.directory||[]).find(p=>String(p.email||"").trim().toLowerCase()===em);
+  if(dir) return [[dir.name,...(dir.aliases||[])].filter(Boolean)];
+  const all=[...new Set(S.tasks.flatMap(t=>[...picList(t),...supList(t)]))];
+  const [first,ini]=em.split("@")[0].split(/[._-]/); if(!first||first.length<2) return [];
+  const norm=n=>String(n).toLowerCase().replace(/^(k|khun)\.?\s*/,"").split(/[\s.]+/).filter(Boolean);
+  return all.filter(n=>{ const w=norm(n); return w[0]===first && (!ini||!w[1]||w[1][0]===ini[0]); }).map(n=>[n]);
+}
+async function saveMyNames(picked){
+  try{ await S.db.doc("members/"+S.me.id).set({names:picked,at:nowIso(),auto:true}); }catch(e){}
+  S.myNames=picked; render(true);
+}
+function vWhoAmI(cands){
+  const all=[...new Set(S.tasks.flatMap(t=>[...picList(t),...supList(t)]))].sort((a,b)=>a.localeCompare(b));
+  const pick=list=>`<div class="pick" id="namepick">${list.map(n=>`<label><input type="checkbox" value="${esc(n)}">${esc(n)}</label>`).join("")}</div>`;
+  if(cands&&cands.length) return `<div class="pagehead"><div><h2>Which name is yours?</h2><p>More than one name matches ${esc(S.me?.email||"your email")}. Pick yours. You only need to do this once.</p></div></div>
+  <div class="card whoami">${pick(cands.map(c=>c[0]))}<input type="hidden" id="ownname" value="">
   <div><button class="btn primary lg" data-act="savenames">Show my tasks</button></div><div class="err" id="nameerr"></div></div>`;
+  const [f,l]=String(S.me?.email||"").split("@")[0].split(/[._-]/); const guess=f?(f[0].toUpperCase()+f.slice(1))+(l?" "+l[0].toUpperCase()+".":""):(S.me?.name||"");
+  return `<div class="pagehead"><div><h2>Add your name</h2><p>Your email isn't linked to a name in the task list yet. Type your name as it should appear in the PIC and Support columns (for example "Vimol C."). You only need to do this once.</p></div></div>
+  <div class="card whoami"><div class="fld"><label for="ownname">Your name</label><input id="ownname" value="${esc(guess)}"></div>
+  ${all.length?`<details><summary class="hint" style="cursor:pointer">Already in the task list under another name? Pick it here</summary>${pick(all)}</details>`:""}
+  <div><button class="btn primary lg" data-act="savenames">Save and show my tasks</button></div><div class="err" id="nameerr"></div></div>`;
 }
 function vMy(){
-  if(!S.myNames) return vWhoAmI();
+  if(!S.myNames){
+    const c=S.autoTried?[]:emailNameMatches();
+    if(c.length===1){ S.autoTried=true; saveMyNames(c[0]); return `<div class="empty">Finding your tasks…</div>`; }
+    S.autoTried=true; return vWhoAmI(c.length>1?c:null);
+  }
   const mine=S.tasks.filter(t=>myRole(t));
   const urgency=t=>{const e=eff(t),h=health(t); return (e==="returned"?1000:0)+(h.needDate?800+h.lateBy:0)+(h.delayed?300:0)+(h.stale?200+h.staleDays:0)+(e==="not_started"?100:0)-((h.dueIn??999)/100);};
   const ns=mine.filter(t=>notStarted(t)&&!pendingReq(t)).sort((a,b)=>refNum(a)-refNum(b));
@@ -1442,7 +1465,7 @@ document.addEventListener("click", async ev=>{
   if(a==="savenames"){ const picked=[...document.querySelectorAll("#namepick input:checked")].map(i=>i.value); const own=$("#ownname").value.trim(); if(own) picked.push(...splitNames(own));
     if(!picked.length){ $("#nameerr").textContent="Pick at least one name."; return; }
     try{ await S.db.doc("members/"+S.me.id).set({names:picked,at:nowIso()}); S.myNames=picked; render(true); }catch(e){ S.myNames=picked; render(true); toast("Saved on this device only."); } return; }
-  if(a==="changenames"){ S.myNames=null; render(true); return; }
+  if(a==="changenames"){ S.myNames=null; S.autoTried=true; render(true); return; }
   if(a==="savedir"){ const people=$("#dir").value.split("\n").map(l=>l.split(",")).filter(p=>p[0]&&p[0].trim()).map(p=>({name:p[0].trim(),email:(p[1]||"").trim(),aliases:(p.slice(2).join(",")).split(";").map(x=>x.trim()).filter(Boolean)}));
     try{ await S.db.doc("config/directory").set({people}); toast(`Saved ${people.length} contacts`); }catch(e){ toast("Only the portal owner can change the directory."); } return; }
   if(a==="saverm"){ const rm=textToRoadmap($("#rm").value); if(!rm.pillars.length){ toast("Add at least one pillar line starting with #"); return; }
