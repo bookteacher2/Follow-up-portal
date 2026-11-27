@@ -1,4 +1,32 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}
+.gantt{border:1px solid var(--line);border-radius:12px;background:var(--panel,#fff);overflow:auto;max-height:72vh}
+.grow{display:grid;grid-template-columns:260px 1fr;min-width:max-content;border-bottom:1px solid var(--line)}
+.grow:last-child{border-bottom:0}
+.ghead{position:sticky;top:0;z-index:3;background:var(--panel,#fff)}
+.glab{position:sticky;left:0;z-index:2;background:var(--panel,#fff);padding:6px 10px;border-right:1px solid var(--line);font-size:12.5px;line-height:1.3;cursor:pointer;min-width:0;overflow:hidden}
+.glab b{font-weight:600}.glab small{display:block;color:var(--ink3);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.glab .ref{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--ink3)}
+.gline{display:grid;position:relative;min-height:44px}
+.gd{grid-row:1;border-left:1px dashed var(--line);min-height:44px;display:flex;align-items:flex-start;justify-content:center;gap:1px;padding-top:2px;cursor:pointer;position:relative;z-index:1}
+.gd:first-child{border-left:0}
+.gd.we{background:color-mix(in srgb,var(--line) 28%,transparent)}
+.gd.td{background:color-mix(in srgb,var(--accent) 12%,transparent);border-left:2px solid var(--accent)}
+.gd:hover{background:color-mix(in srgb,var(--accent) 18%,transparent)}
+.gd.h{flex-direction:column;align-items:center;font-size:11px;color:var(--ink3);min-height:34px;padding:3px 0;cursor:default}
+.gd.h b{color:var(--ink);font-size:12px}
+.gu{color:var(--accent);font-size:11px;line-height:1;position:relative;z-index:3;margin-top:auto;margin-bottom:3px}
+.gm{font-size:10px;color:var(--ink);line-height:1;position:relative;z-index:3}
+.gbar,.gtail{grid-row:1;align-self:center;height:12px;border-radius:7px;pointer-events:none;z-index:2;display:flex;align-items:center;justify-content:space-between;font-size:10px;color:#fff;padding:0 3px;margin:0 2px}
+.gbar.open{background:var(--info)}.gbar.late{background:var(--info)}.gbar.sub{background:var(--ok-mid)}.gbar.done{background:var(--ok)}.gbar.closed{background:var(--ink3);opacity:.6}
+.gtail{height:6px;background:repeating-linear-gradient(90deg,var(--bad) 0 6px,transparent 6px 9px);border-radius:3px;margin-top:3px}
+.gtip{position:fixed;z-index:60;background:var(--panel,#fff);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.16);padding:10px 12px;font-size:12.5px;line-height:1.45;pointer-events:none}
+.gtip .gth{font-weight:700}.gtip .gtt{color:var(--ink3);margin-bottom:6px}
+.gtip .gti{border-top:1px solid var(--line);padding:6px 0}.gtip .gtf{color:var(--accent);font-weight:600;font-size:12px}
+@media (max-width:700px){.grow{grid-template-columns:150px 1fr}}
+
+.star{color:#f5b301;text-shadow:0 0 1px rgba(0,0,0,.35);font-weight:400}
+.gstar{grid-row:1;align-self:center;justify-self:center;z-index:5;color:#f5b301;font-size:17px;line-height:1;text-shadow:0 0 2px #fff,0 0 1px rgba(0,0,0,.5);pointer-events:none}
+</style></head><body>
 <title>24X CEO Follow-up</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -808,7 +836,7 @@ function calItems(){
     const cls = ACTIVE.includes(e) ? (h.delayed?"bad":"") : e==="submitted"?"sub":e==="completed"?"done":"closed";
     return {t,d,cls,h}; }).filter(x=>x.d).concat(S.calKeys===false?[]:S.tasks.filter(t=>(!f.bu||t.bu===f.bu)&&(!f.pic||[...picList(t),...supList(t)].some(p=>norm(p)===norm(f.pic)))).flatMap(t=>(t.milestones||[]).map(m=>({t,d:m.date,cls:"kd"+(m.kind==="meeting"?" mtg":""),h:health(t),m}))));
 }
-function ciBtn(x){ if(x.m){ const st=piState(x.m); return `<button class="pi ${st}" data-open="${x.t.id}" data-ptab-open="1" title="${esc(PK[x.m.kind].lb+": "+x.m.title+" · "+x.t.ref+" "+x.t.topic)}"><span class="ic">${PK[x.m.kind].ic}</span>${x.m.time?esc(x.m.time)+" ":""}${esc(x.m.title)}</button>`; } const tip=`${x.t.ref} ${x.t.topic} · ${x.t.pic||""}${x.h.delayed?` · was due ${fmtD(x.h.target)}`:""}`; return `<button class="ci ${x.cls}" data-open="${x.t.id}" title="${esc(tip)}">${x.h.delayed?"⚠ ":""}${esc(x.t.topic)}</button>`; }
+function ciBtn(x){ if(x.m){ const st=piState(x.m); return `<button class="pi ${st}" data-open="${x.t.id}" data-ptab-open="1" title="${esc(PK[x.m.kind].lb+": "+x.m.title+" · "+x.t.ref+" "+x.t.topic)}"><span class="ic">${PK[x.m.kind].ic}</span>${x.m.time?esc(x.m.time)+" ":""}${esc(x.m.title)}</button>`; } const tip=`${x.t.ref} ${x.t.topic} · ${x.t.pic||""}${x.h.delayed?` · was due ${fmtD(x.h.target)}`:""}`; const dl=x.d===effTarget(x.t); return `<button class="ci ${x.cls}" data-open="${x.t.id}" title="${esc((dl?"Deadline · ":"")+tip)}">${dl?`<b class="star">★</b> `:""}${x.h.delayed?"⚠ ":""}${esc(x.t.topic)}</button>`; }
 function vCal(){
   const now=new Date(); if(!S.cal) S.cal={y:now.getFullYear(),m:now.getMonth()};
   const {y,m}=S.cal, first=new Date(y,m,1), startDow=(first.getDay()+6)%7, days=new Date(y,m+1,0).getDate();
@@ -820,16 +848,80 @@ function vCal(){
   const monthKeys=Object.keys(by).filter(k=>k.startsWith(key(y,m,1).slice(0,7))).sort();
   const overdueBefore=items.filter(x=>x.cls==="bad"&&x.d<key(y,m,1));
   const o=(v,l,cur)=>`<option value="${esc(v)}" ${v===cur?"selected":""}>${esc(l)}</option>`;
-  return `<div class="pagehead"><div><h2>Calendar</h2><p>Due dates by day. Delayed tasks are red and sit on their new finish date; hover or open one to see the original date.</p></div></div>
+  if(!S.calView){ try{ S.calView=localStorage.getItem("calView")||"month"; }catch(e){ S.calView="month"; } }
+  const gantt=S.calView==="gantt";
+  return `<div class="pagehead"><div><h2>Calendar</h2><p>${gantt?"Each task from its start to its agreed finish date. Red tail = running past the agreed date. Point at a day to see what was updated that day.":"Due dates by day. Delayed tasks are red and sit on their new finish date; hover or open one to see the original date."}</p></div>
+    <div class="seg" role="group" aria-label="View"><button data-calview="month" aria-pressed="${!gantt}">Month</button><button data-calview="gantt" aria-pressed="${gantt}">Timeline</button></div></div>
   <div class="filters">${buChips()}
     <select id="fpic" aria-label="Person">${o("","All people",S.f.pic)}${allPics().map(p=>o(p,p,S.f.pic)).join("")}</select>
     <div class="seg" role="group" aria-label="Show"><button data-calshow="open" aria-pressed="${S.calShow==="open"}">Open only</button><button data-calshow="all" aria-pressed="${S.calShow==="all"}">Include closed</button></div></div>
   <div class="calhead"><button class="btn sm" data-calnav="-1" aria-label="Previous month">‹</button><h3>${first.toLocaleDateString("en-GB",{month:"long",year:"numeric"})}</h3><button class="btn sm" data-calnav="1" aria-label="Next month">›</button><button class="btn sm ghost" data-calnav="0">Today</button>
-    <span class="legend" style="margin-left:auto"><span>◆ Deliverable</span><span>● Meeting</span><span>↻ Follow-up</span><span><i style="background:var(--bad)"></i>Delayed</span><span><i style="background:var(--info-soft)"></i>Open</span><span><i style="background:var(--ok-mid)"></i>Completed, to confirm</span><span><i style="background:var(--ok)"></i>Confirmed</span></span></div>
+    ${gantt?`<span class="legend" style="margin-left:auto"><span><i style="background:var(--info)"></i>Open</span><span><i style="background:var(--bad)"></i>Past agreed date</span><span><i style="background:var(--ok-mid)"></i>Completed, to confirm</span><span><i style="background:var(--ok)"></i>Confirmed</span><span><b class="star">★</b> Deadline</span><span>● Update logged</span><span>◆ ● ↻ Plan items</span></span></div>${vGantt(y,m,days)}`:`<span class="legend" style="margin-left:auto"><span><b class="star">★</b> Deadline</span><span>◆ Deliverable</span><span>● Meeting</span><span>↻ Follow-up</span><span><i style="background:var(--bad)"></i>Delayed</span><span><i style="background:var(--info-soft)"></i>Open</span><span><i style="background:var(--ok-mid)"></i>Completed, to confirm</span><span><i style="background:var(--ok)"></i>Confirmed</span></span></div>
   ${overdueBefore.length?`<div class="banner warn"><b>${overdueBefore.length} delayed task(s) with no new date in this month or later:</b> ${overdueBefore.map(x=>`<a href="#calendar" data-open="${x.t.id}">${esc(x.t.ref)}</a>`).join(", ")}</div>`:""}
   <div class="calgrid">${["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(d=>`<div class="dow">${d}</div>`).join("")}${cells.join("")}</div>
-  <div class="agenda">${monthKeys.length?monthKeys.map(k=>`<div class="ad"><b>${fmtD(k)} · ${new Date(k+"T00:00:00").toLocaleDateString("en-GB",{weekday:"short"})}</b>${by[k].map(ciBtn).join("")}</div>`).join(""):`<div class="empty">Nothing due this month.</div>`}</div>`;
+  <div class="agenda">${monthKeys.length?monthKeys.map(k=>`<div class="ad"><b>${fmtD(k)} · ${new Date(k+"T00:00:00").toLocaleDateString("en-GB",{weekday:"short"})}</b>${by[k].map(ciBtn).join("")}</div>`).join(""):`<div class="empty">Nothing due this month.</div>`}</div>`}`;
 }
+
+
+// ---------- Timeline (Gantt) ----------
+const localKey = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+function ganttTasks(){
+  const f=S.f;
+  return S.tasks.filter(t=>{ const e=eff(t);
+    if(S.calShow==="open" && !(ACTIVE.includes(e)||e==="submitted")) return false;
+    if(f.bu && t.bu!==f.bu) return false;
+    if(f.pic && ![...picList(t),...supList(t)].some(p=>norm(p)===norm(f.pic))) return false;
+    return true; });
+}
+function vGantt(y,m,days){
+  const mk=d=>`${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`, m0=mk(1), m1=mk(days), today=todayStr();
+  const rows=ganttTasks().map(t=>{
+    const e=eff(t), h=health(t), tgt=effTarget(t)||"", exp=h.expected||tgt;
+    const start=(t.start||String(t.createdAt||"").slice(0,10)||tgt||"");
+    const end=[tgt,exp].filter(Boolean).sort().pop()||start;
+    return {t,e,h,start,tgt,exp,end};
+  }).filter(r=>r.start && r.start<=m1 && r.end>=m0).sort((a,b)=>a.start.localeCompare(b.start)||refNum(a.t)-refNum(b.t));
+  if(!rows.length) return `<div class="empty">No tasks run during this month.</div>`;
+  const dayN=k=>k<m0?0:k>m1?days+1:+k.slice(8);
+  const head=Array.from({length:days},(_,i)=>{ const d=new Date(y,m,i+1), k=mk(i+1), we=d.getDay()===0||d.getDay()===6;
+    return `<div class="gd h ${we?"we":""} ${k===today?"td":""}" style="grid-column:${i+1}"><b>${i+1}</b><span>${"SMTWTFS"[d.getDay()]}</span></div>`; }).join("");
+  const body=rows.map(r=>{
+    const {t,e,h}=r, open=ACTIVE.includes(e);
+    const ups={}; (t.updates||[]).forEach(u=>{ if(!u.at||!u.text||/added$/.test(u.kind||"")) return; const k=localKey(new Date(u.at)); (ups[k]=ups[k]||[]).push(u); });
+    const ms={}; (t.milestones||[]).forEach(x=>{ (ms[x.date]=ms[x.date]||[]).push(x); });
+    const cls=open?(h.delayed?"late":"open"):e==="submitted"?"sub":e==="completed"?"done":"closed";
+    const a=Math.max(1,dayN(r.start)), plannedEnd=r.tgt||r.end, b=Math.min(days,dayN(plannedEnd)||days);
+    const bar = plannedEnd>=m0 && r.start<=m1 ? `<div class="gbar ${cls}" style="grid-column:${a}/${b+1}">${r.start<m0?"‹":""}<span></span>${plannedEnd>m1?"›":""}</div>`:"";
+    const lateFrom = r.tgt && r.end>r.tgt ? r.tgt : null;
+    const tail = lateFrom && open && r.end>=m0 && lateFrom<=m1 ? `<div class="gtail" style="grid-column:${Math.max(1,dayN(lateFrom)+(lateFrom>=m0?1:0))}/${Math.min(days,dayN(r.end)||days)+1}"></div>`:"";
+    const cells=Array.from({length:days},(_,i)=>{ const k=mk(i+1), u=ups[k], x=ms[k], we=[0,6].includes(new Date(y,m,i+1).getDay()), dl=k===r.tgt;
+      return `<div class="gd ${we?"we":""} ${k===today?"td":""}" style="grid-column:${i+1}" data-gt="${esc(t.id)}" data-gk="${k}" data-open="${esc(t.id)}">${x?`<span class="gm">${x.map(z=>PK[z.kind]?.ic||"◆").join("")}</span>`:""}${u?`<span class="gu">●</span>`:""}</div>`; }).join("");
+    return `<div class="grow"><div class="glab" data-open="${esc(t.id)}" title="${esc(t.topic)}"><span class="ref">${esc(t.ref||"")}</span> <b>${esc(t.topic)}</b><small>${esc(t.pic||"")} · ${fmtD(r.start)} → ${fmtD(r.tgt||r.end)}${lateFrom&&open?` · <span style="color:var(--bad)">new ${fmtD(r.end)}</span>`:""}</small></div>
+      <div class="gline" style="grid-template-columns:repeat(${days},minmax(24px,1fr))">${cells}${bar}${tail}${r.tgt&&r.tgt>=m0&&r.tgt<=m1?`<div class="gstar" style="grid-column:${dayN(r.tgt)}">★</div>`:""}</div></div>`;
+  }).join("");
+  return `<div class="gantt"><div class="grow ghead"><div class="glab"><b>${rows.length} task${rows.length>1?"s":""}</b></div><div class="gline" style="grid-template-columns:repeat(${days},minmax(24px,1fr))">${head}</div></div>${body}</div><div id="gtip" class="gtip" hidden></div>`;
+}
+function ganttTip(cell){
+  const tip=$("#gtip"); if(!tip) return;
+  if(!cell){ tip.hidden=true; return; }
+  const t=S.tasks.find(x=>x.id===cell.dataset.gt); if(!t){ tip.hidden=true; return; }
+  const k=cell.dataset.gk;
+  const ups=(t.updates||[]).filter(u=>u.at&&u.text&&localKey(new Date(u.at))===k);
+  const ms=(t.milestones||[]).filter(x=>x.date===k);
+  const h=health(t), tgt=effTarget(t);
+  tip.innerHTML=`<div class="gth">${fmtD(k)} · ${new Date(k+"T00:00:00").toLocaleDateString("en-GB",{weekday:"long"})}</div><div class="gtt">${esc(t.ref||"")} ${esc(t.topic)}</div>
+    ${ms.map(x=>`<div class="gti">${PK[x.kind]?.ic||"◆"} <b>${esc(PK[x.kind]?.lb||"Plan")}:</b> ${esc(x.title)}${x.time?" · "+esc(x.time):""}</div>`).join("")}
+    ${ups.length?ups.map(u=>`<div class="gti"><b>${esc(name(u.by))}</b>${u.kind&&u.kind!=="update"?` · ${esc(u.kind)}`:""}<br>${esc(String(u.text).slice(0,280))}${String(u.text).length>280?"…":""}${u.next?`<br><span class="hint">Next: ${esc(u.next)}</span>`:""}</div>`).join(""):`<div class="gti hint">No update logged on this day.</div>`}
+    <div class="gtf">${k===tgt?"Agreed finish date":k===(t.start||"")?"Start date":""}${h.delayed&&k===h.expected?" New finish date":""}</div>`;
+  tip.hidden=false;
+  const r=cell.getBoundingClientRect(), tw=Math.min(340,window.innerWidth-24);
+  tip.style.width=tw+"px";
+  let x=r.left+r.width/2-tw/2; x=Math.max(12,Math.min(x,window.innerWidth-tw-12));
+  const below=r.bottom+8+tip.offsetHeight<window.innerHeight;
+  tip.style.left=x+"px"; tip.style.top=(below?r.bottom+8:Math.max(8,r.top-8-tip.offsetHeight))+"px";
+}
+document.addEventListener("mouseover", ev=>{ const c=ev.target.closest&&ev.target.closest("[data-gk]"); if(c) ganttTip(c); else if(!ev.target.closest||!ev.target.closest("#gtip")) ganttTip(null); });
+document.addEventListener("scroll", ()=>ganttTip(null), true);
 
 // ---------- Roadmap ----------
 function vRoadmap(){
@@ -1028,6 +1120,8 @@ function linkify(s){ return esc(s||"").replace(/(https?:\/\/[^\s<]+)/g,'<a href=
 function sheetTask(t){
   const e=eff(t), h=health(t), a=S.appr[t.id], c=t.completion, pr=pendingReq(t), rr=reqRec(t);
   const ups=[...(t.updates||[])].reverse(), w=canWrite(), ceo=isCeo();
+  // Working on the task (update, finish, files, plan, brief): the PIC, support and CEO Office. The CEO comments and decides.
+  const act = w && (isOffice() || !!myRole(t));
   const fs=filesOf(t), imgs=fs.filter(isImg), docs=fs.filter(f=>!isImg(f));
   let top="";
   if(e==="submitted" && ceo) top=`<div class="card hl"><h4>Confirm this work is done</h4>
@@ -1041,20 +1135,21 @@ function sheetTask(t){
       <div class="actions"><button class="btn ok" data-act="reqapprove">Approve request</button><button class="btn bad" data-act="reqreject">Reject</button></div><div id="reqerr" class="err"></div></div>`;
   else if(pr) top+=`<div class="banner warn">${pr.type==="cancel"?"Cancellation":pr.type==="failed"?"Closing as failed":"New target "+fmtD(pr.newTarget)} requested ${ago(pr.at)}. Waiting for the CEO.</div>`;
   if(rr && rr.decision==="rejected" && !pr) top+=`<div class="banner">CEO rejected the request${rr.comment?": "+esc(rr.comment):""}.</div>`;
-  const actions = w && ACTIVE.includes(e) ? `<div class="actions">
+  const actions = !act && ceo && w && ACTIVE.includes(e) ? (!pr?`<div class="actions"><button class="btn" data-act="mode" data-m="timeline">Change agreed date</button></div>`:"")
+    : act && ACTIVE.includes(e) ? `<div class="actions">
       <button class="btn primary lg" data-act="mode" data-m="update">Update progress</button>
       <button class="btn" data-act="mode" data-m="complete">Finished: submit for approval</button>
       ${!pr?`${ceo?`<button class="btn" data-act="mode" data-m="timeline">Change agreed date</button>`:""}<button class="btn bad" data-act="mode" data-m="close">${ceo||isOffice()?"Close task…":"Request to close…"}</button>`:""}</div>` : "";
   const nm=(t.milestones||[]).length;
   const tabs=`<div class="seg" role="tablist"><button data-ptab="detail" aria-pressed="${S.ptab!=="plan"}">Details</button><button data-ptab="plan" aria-pressed="${S.ptab==="plan"}">Plan and meetings${nm?`<span class="c">${nm}</span>`:""}</button></div>`;
-  if(S.ptab==="plan") return `${head(esc(t.topic), `${esc(t.ref||"")} · ${esc(t.category||"")}`)}<div class="sheet-b">${tabs}${planPanel(t,w)}</div>`;
+  if(S.ptab==="plan") return `${head(esc(t.topic), `${esc(t.ref||"")} · ${esc(t.category||"")}`)}<div class="sheet-b">${tabs}${planPanel(t,act)}</div>`;
   return `${head(esc(t.topic), `${esc(t.ref||"")} · ${esc(t.category||"")}`)}
   <div class="sheet-b">
     ${tabs}
     ${stepsBar(e)}
     <div class="meta"><span class="chip st-${e}">${ST[e]}</span>${lastHealth(t)&&ACTIVE.includes(e)?`<span class="chip h-${lastHealth(t)}">${HL[lastHealth(t)]}</span>`:""}${dueText(t)}${h.stale?` <span class="fresh warn">No update for ${h.staleDays} days</span>`:""}</div>
     ${e==="returned"&&a?`<div class="banner warn"><b>Returned by the CEO ${fmtD(a.at)}:</b> ${esc(a.comment||"No comment")}</div>`:""}
-    ${health(t).needDate&&w?`<div class="banner warn" style="background:var(--bad-soft);color:var(--bad)"><b>${health(t).forecast?`The new date ${fmtD(health(t).forecast)} has passed.`:`${health(t).lateBy} days past the agreed date.`}</b> Post an update with a new finish date.</div>`:""}
+    ${health(t).needDate&&act?`<div class="banner warn" style="background:var(--bad-soft);color:var(--bad)"><b>${health(t).forecast?`The new date ${fmtD(health(t).forecast)} has passed.`:`${health(t).lateBy} days past the agreed date.`}</b> Post an update with a new finish date.</div>`:""}
     ${top}${actions}
     ${qaCard(t,w)}
     ${c?`<div class="card"><h4>Completion evidence</h4><dl class="kv">
@@ -1066,7 +1161,7 @@ function sheetTask(t){
       ${imgs.length?`<div class="gallery">${imgs.map(f=>`<img src="${esc(f.url)}" alt="${esc(f.name)}" data-zoom="${esc(f.url)}" loading="lazy">`).join("")}</div>`:""}
       ${docs.length?`<div class="thumbs">${docs.map(fileChip).join("")}</div>`:""}
       ${!fs.length?`<p class="hint" style="margin:0">No files yet.</p>`:""}
-      ${w?uploader("tf_files"):""}</div>
+      ${act?uploader("tf_files"):""}</div>
     <div class="card"><h4>Brief</h4><dl class="kv">
       ${t.details?`<dt>Details</dt><dd>${esc(t.details)}</dd>`:""}
       <dt>Outcome / deliverable</dt><dd>${esc(t.objective||t.deliverables||"—")}${t.deliverables&&t.deliverables!==t.objective?"\n"+esc(t.deliverables):""}</dd>
@@ -1077,7 +1172,7 @@ function sheetTask(t){
       <dt>Timeline</dt><dd>${fmtD(t.start)} → ${fmtD(effTarget(t))}${t.originalTarget&&t.originalTarget!==effTarget(t)?` (originally ${fmtD(t.originalTarget)})`:""}${t.forecast&&t.forecast!==effTarget(t)?`\nNew expected finish: ${fmtD(t.forecast)}`:""}</dd>
       ${(t.forecastLog||[]).length?`<dt>Delay log</dt><dd>${t.forecastLog.map(l=>`${fmtD(l.at)}: ${fmtD(l.from)} → ${fmtD(l.to)}${l.reason?" ("+esc(l.reason)+")":""}`).join("\n")}</dd>`:""}
       <dt>Requested by</dt><dd>${esc(name(t.createdBy))}, ${fmtD(t.createdAt)}</dd>
-    </dl>${w?`<div><button class="btn sm" data-act="mode" data-m="edit">Edit brief</button></div>`:""}</div>
+    </dl>${act?`<div><button class="btn sm" data-act="mode" data-m="edit">Edit brief</button></div>`:""}</div>
     <div class="card"><h4>History</h4><div class="tl">${ups.map(u=>`<div class="ev"><div class="d">${fmtD(u.at)}</div><div><div class="w"><b>${esc(name(u.by))}</b>${u.onBehalf?` for ${esc(u.onBehalf)}`:""}${u.kind?` · ${esc(u.kind)}`:""}${u.health?` <span class="chip h-${u.health}">${HL[u.health]}</span>`:""}${u.pct!=null?` · ${u.pct}%`:""}${u.needCeo?` <span class="flag">Needs CEO</span>`:""}</div><div class="tx">${esc(u.text)}${u.next?`\nNext: ${esc(u.next)}${u.nextDate?" (by "+fmtD(u.nextDate)+")":""}`:""}${u.blocker?`\nBlocker: ${esc(u.blocker)}`:""}</div></div></div>`).join("")||`<div class="empty">No updates yet.</div>`}</div></div>
   </div>`;
 }
@@ -1391,6 +1486,7 @@ async function downloadPacked(url,nm,type){
 }
 async function handleFiles(files,t){
   if(!canWrite()) return;
+  if(!(isOffice()||myRole(t))){ toast("Only the PIC, support or CEO Office can add files to this task."); return; }
   for(const file of files){
     const p={task:t.id,name:file.name}; S.pending.push(p); render();
     try{
@@ -1422,11 +1518,12 @@ document.addEventListener("click", async ev=>{
   if(ev.target.closest(".lightbox")){ $("#lb").innerHTML=""; return; }
   const dl=ev.target.closest("[data-dl]"); if(dl){ ev.stopPropagation(); downloadPacked(dl.dataset.dl,dl.dataset.dlname,dl.dataset.dltype); return; }
   if(ev.target.matches("input[data-msdone]")){ const t=S.tasks.find(x=>x.id===S.open); if(t){ const id=ev.target.dataset.msdone, v=ev.target.checked; guard(async()=>{ await tref(t.id).update({milestones:(t.milestones||[]).map(m=>m.id===id?{...m,done:v}:m)}); }); } return; }
-  const el=ev.target.closest("[data-act],[data-pitem],[data-pday],[data-pcalnav],[data-wscope],[data-ptab],[data-open],[data-update],[data-goto],[data-copy],[data-mail],[data-fpic],[data-fpillar],[data-ceotab],[data-fbu],[data-fstat],[data-sort],[data-calshow],[data-calnav],a[data-fs]");
+  const el=ev.target.closest("[data-act],[data-pitem],[data-pday],[data-pcalnav],[data-wscope],[data-ptab],[data-open],[data-update],[data-goto],[data-copy],[data-mail],[data-fpic],[data-fpillar],[data-ceotab],[data-fbu],[data-fstat],[data-sort],[data-calview],[data-calshow],[data-calnav],a[data-fs]");
   if(!el) return;
   if(el.dataset.fbu!==undefined){ S.f.bu=el.dataset.fbu; S.sel.clear(); render(true); return; }
   if(el.dataset.sort){ S.sort=el.dataset.sort; render(true); return; }
   if(el.dataset.fstat!==undefined){ S.f.status=el.dataset.fstat; render(true); return; }
+  if(el.dataset.calview){ S.calView=el.dataset.calview; try{ localStorage.setItem("calView",S.calView); }catch(e){} render(true); return; }
   if(el.dataset.calshow){ S.calShow=el.dataset.calshow; render(true); return; }
   if(el.dataset.calnav!==undefined){ const n=+el.dataset.calnav, now=new Date(); if(!n) S.cal={y:now.getFullYear(),m:now.getMonth()}; else { const d=new Date(S.cal.y,S.cal.m+n,1); S.cal={y:d.getFullYear(),m:d.getMonth()}; } render(true); return; }
   if(el.dataset.ceotab){ S.ceoTab=el.dataset.ceotab; S.sel.clear(); render(true); return; }
