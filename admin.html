@@ -121,16 +121,17 @@ function bind(){
 async function runImport(data){
   const btn=$("#doImport"), log=$("#log"); btn.disabled=true; log.hidden=false; log.textContent="";
   const say=t=>{ log.textContent+=t+"\n"; log.scrollTop=log.scrollHeight; };
+  let step="starting";
   try{
     const oldOffice=new Set(data.officeIds||[]); const fromBackup=!!(oldOffice.size&&[...oldOffice].every(id=>!/^u_/.test(id))&&data.exportedBy===me.id);
     const mapId=id=>(!fromBackup&&oldOffice.has(id))?me.id:id;
     // 1. files
     const blobs=data.blobs||{}; let done=0, skipped=0;
     for(const [id,b] of Object.entries(blobs)){
-      const ex=await db.doc("blobs/"+id).get();
+      step="checking file blobs/"+id; const ex=await db.doc("blobs/"+id).get();
       if(ex.exists){ skipped++; continue; }
       const bin=atob(b.b64), u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
-      await window.__fbPutBlob(id,new Blob([u8],{type:b.type||"application/octet-stream"}),b.name);
+      step="storing file blobs/"+id; await window.__fbPutBlob(id,new Blob([u8],{type:b.type||"application/octet-stream"}),b.name);
       done++; if(done%5===0) say(`Files: ${done} stored…`);
     }
     say(`Files: ${done} stored, ${skipped} already there.`);
@@ -153,13 +154,15 @@ async function runImport(data){
     Object.entries(names).forEach(([id,n])=>{ if(/^u_/.test(id)) writes.push(["users/"+id,{name:n,legacy:true}]); });
     let n=0;
     for(let i=0;i<writes.length;i+=300){
-      const batch=db.batch(); writes.slice(i,i+300).forEach(([p,v])=>batch.set(db.doc(p),v)); await batch.commit(); n+=Math.min(300,writes.length-i); say(`Records: ${n} of ${writes.length} written…`);
+      const chunk=writes.slice(i,i+300); step="writing records "+chunk[0][0]+" … "+chunk[chunk.length-1][0];
+      try{ const batch=db.batch(); chunk.forEach(([p,v])=>batch.set(db.doc(p),v)); await batch.commit(); }
+      catch(e){ if(e&&e.code!=="permission-denied") throw e; for(const [p,v] of chunk){ step="writing "+p; await db.doc(p).set(v); } } n+=Math.min(300,writes.length-i); say(`Records: ${n} of ${writes.length} written…`);
     }
     const nt=writes.filter(w=>w[0].startsWith("tasks/")).length;
     say(`Done. ${nt} tasks, ${writes.length-nt} other records, ${done} new files.`);
     if(data.ceoId&&/^u_/.test(data.ceoId)) say("Note: the CEO approver must be set again below once the CEO has signed in.");
     await load(); $("#log").hidden=false; $("#log").textContent=log.textContent;
-  }catch(e){ say("STOPPED: "+(e.message||e)+"\nNothing after this line was written. Fix the problem and run the import again."); btn.disabled=false; }
+  }catch(e){ say("STOPPED while "+step+": "+(e.code?e.code+" · ":"")+(e.message||e)+"\nNothing after this line was written. Fix the problem and run the import again."); btn.disabled=false; }
 }
 await load();
 })();
