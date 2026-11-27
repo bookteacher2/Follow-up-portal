@@ -1,0 +1,71 @@
+rules_version = '2';
+// 24X CEO Follow-up: who can read and write what.
+// Paste this whole text into Firebase console > Firestore Database > Rules, then press Publish.
+// Keep OWNER EMAILS in line with ownerEmails in config.js (lower case).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null && request.auth.token.email != null; }
+    function email() { return request.auth.token.email.lower(); }
+    // ---- OWNER EMAILS ----
+    function isOwner() { return signedIn() && email() in ['nutthanit.t@24slg.com', 'ceooffice.24slg@gmail.com']; }
+    function cfg(name) { return get(/databases/$(database)/documents/config/$(name)).data; }
+    function hasCfg(name) { return exists(/databases/$(database)/documents/config/$(name)); }
+    // Access list: config/access.emails (managed on admin.html)
+    function isMember() { return isOwner() || (signedIn() && hasCfg('access') && email() in cfg('access').emails); }
+    function isOffice() { return isOwner() || (signedIn() && hasCfg('roles') && request.auth.uid in cfg('roles').get('officeIds', [])); }
+    function isCeo() { return signedIn() && hasCfg('roles') && request.auth.uid == cfg('roles').get('ceoId', ''); }
+
+    // Settings, roles, roadmap, directory, access list: everyone signed in reads, only owners change.
+    match /config/{doc} {
+      allow read: if isMember();
+      allow write: if isOwner();
+    }
+
+    // Tasks: members create and update. Only CEO Office or the CEO may change the agreed target date.
+    // Only owners delete.
+    match /tasks/{id} {
+      allow read, create: if isMember();
+      allow update: if isMember() && (isOffice() || isCeo()
+                      || request.resource.data.get('target', '') == resource.data.get('target', ''));
+      allow delete: if isOwner();
+    }
+
+    // CEO question list
+    match /ceoq/{id} {
+      allow read, create, update: if isMember();
+      allow delete: if isOffice();
+    }
+
+    // "Pick your name" link: each person writes only their own; owners can fix any.
+    match /members/{uid} {
+      allow read: if isMember();
+      allow write: if isOwner() || (isMember() && request.auth.uid == uid);
+    }
+
+    // Name card per account (written at sign-in). Owners may add names for imported history.
+    match /users/{uid} {
+      allow read: if isMember();
+      allow write: if isOwner() || (isMember() && request.auth.uid == uid);
+    }
+
+    // Decisions (CEO confirmations, approvals, CEO Office closures): only the author writes their own.
+    match /approvals/{uid}/{sub}/{id} {
+      allow read: if isMember();
+      allow write: if isMember() && request.auth.uid == uid;
+    }
+
+    // Attached files (stored in parts). Members add; nobody edits; owners delete.
+    match /blobs/{id} {
+      allow read, create: if isMember();
+      allow delete: if isOwner();
+      match /p/{part} {
+        allow read, create: if isMember();
+        allow delete: if isOwner();
+      }
+    }
+
+    // Anything else is closed.
+    match /{document=**} { allow read, write: if false; }
+  }
+}

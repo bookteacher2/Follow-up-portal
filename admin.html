@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>24X Follow-up Admin</title>
+<style>
+:root{--bg:#f4f6f5;--panel:#fff;--line:#e1e7e4;--ink:#14201b;--ink2:#46534d;--ink3:#7b8782;--accent:#0b6b55;--soft:#e3f1ec;--bad:#c0392b;--ok:#1f7a55}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 Inter,"IBM Plex Sans Thai",system-ui,sans-serif}
+.wrap{max-width:900px;margin:0 auto;padding:24px 16px 80px}
+h1{font-size:20px;margin:0}
+.sub{color:var(--ink3);font-size:13px;margin:2px 0 18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:14px}
+.card h2{font-size:15px;margin:0 0 4px}
+.hint{color:var(--ink3);font-size:12.5px;margin:0 0 12px}
+textarea,input[type=text]{width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font:inherit}
+textarea{min-height:120px;font-family:ui-monospace,Menlo,monospace;font-size:13px}
+.btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 13px;font:inherit;font-weight:600;cursor:pointer;color:var(--ink)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.sm{padding:4px 9px;font-size:12.5px}
+.btn:disabled{opacity:.6;cursor:wait}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);padding:6px 8px;border-bottom:1px solid var(--line)}
+td{padding:8px;border-bottom:1px solid var(--line);vertical-align:middle}
+.tag{display:inline-block;border-radius:999px;padding:2px 9px;font-size:11.5px;font-weight:700;background:var(--soft);color:var(--accent)}
+.msg{font-size:13px;margin-top:10px;white-space:pre-wrap}
+.msg.bad{color:var(--bad)}.msg.ok{color:var(--ok)}
+.log{font-family:ui-monospace,Menlo,monospace;font-size:12px;background:#f7f9f8;border:1px solid var(--line);border-radius:10px;padding:10px;max-height:220px;overflow:auto;white-space:pre-wrap;margin-top:10px}
+.warn{background:#fdf1e4;border:1px solid #f1d3ad;border-radius:10px;padding:10px 12px;font-size:13px;margin-top:10px}
+a{color:var(--accent)}
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+<script src="fb-adapter.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <h1>24X Follow-up: Admin</h1>
+  <div class="sub" id="who">Loading…</div>
+  <div id="app"></div>
+</div>
+<script>
+(async function(){
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]);
+const lc=s=>String(s||"").trim().toLowerCase();
+const nowIso=()=>new Date().toISOString();
+const db=await claude.use("db"), user=await claude.use("user"), me=await user.me();
+const owner=await user.isOwner();
+$("#who").innerHTML=`Signed in as ${esc(me.email)} · <a href="./">Back to the portal</a>`;
+if(!owner){ $("#app").innerHTML=`<div class="card"><h2>Owners only</h2><p class="hint">This page is for the CEO Office owners listed in config.js.</p></div>`; return; }
+
+let access={emails:[]}, roles={}, users=[];
+async function load(){
+  const [a,r,u]=await Promise.all([db.doc("config/access").get(),db.doc("config/roles").get(),db.collection("users").get()]);
+  access=a.exists?a.data():{emails:[]}; access.emails=access.emails||[];
+  roles=r.exists?r.data():{}; roles.officeIds=roles.officeIds||[];
+  users=u.docs.map(d=>({id:d.id,...d.data()})).filter(x=>x.email).sort((x,y)=>String(x.name).localeCompare(String(y.name)));
+  render();
+}
+function render(){
+  $("#app").innerHTML=`
+  <div class="card"><h2>1 · Who can sign in</h2>
+    <p class="hint">One work email per line. Only these people (and the owners) can open the portal. To give someone access: add the email here, then create their account in Firebase console &gt; Authentication &gt; Add user (or they use "Sign in with Microsoft" once that is switched on). Removing an email blocks them at once.</p>
+    <textarea id="emails" spellcheck="false">${esc(access.emails.join("\n"))}</textarea>
+    <div class="row"><button class="btn primary" id="saveAccess">Save access list</button><span class="hint" style="margin:0">${access.emails.length} email(s)</span></div>
+    <div class="msg" id="accessMsg"></div></div>
+
+  <div class="card"><h2>2 · Roles</h2>
+    <p class="hint">People appear here after they sign in once. CEO Office members can correct target dates and close tasks. The CEO approver is the only account that can confirm completed work and approve requests.</p>
+    ${users.length?`<table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th></th></tr></thead><tbody>${users.map(u=>{
+      const off=roles.officeIds.includes(u.id), ceo=roles.ceoId===u.id;
+      return `<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td>${ceo?'<span class="tag">CEO approver</span> ':""}${off?'<span class="tag">CEO Office</span>':""}${!ceo&&!off?'<span class="hint">PIC</span>':""}</td>
+      <td style="white-space:nowrap"><button class="btn sm" data-off="${esc(u.id)}">${off?"Remove CEO Office":"Make CEO Office"}</button> ${ceo?"":`<button class="btn sm" data-ceo="${esc(u.id)}">Set as CEO approver</button>`}</td></tr>`;}).join("")}</tbody></table>`:`<p class="hint">Nobody has signed in yet.</p>`}
+    <div class="msg" id="roleMsg"></div></div>
+
+  <div class="card"><h2>3 · Import data</h2>
+    <p class="hint">Load the file from "Export everything for the new site" (old portal, Setup page) or a backup from this site. Tasks, history, decisions and attached files are copied in. Running it twice is safe: it overwrites the same tasks and skips files already stored.</p>
+    <input type="file" id="file" accept=".json,application/json">
+    <div class="row"><button class="btn primary" id="doImport" disabled>Import</button></div>
+    <div class="warn" id="impInfo" hidden></div>
+    <div class="log" id="log" hidden></div></div>
+
+  <div class="card"><h2>4 · Backup</h2>
+    <p class="hint">Every Friday: open the portal's Setup page and press "Download full backup". Save the file in SharePoint (CEO Office / 24X Follow-up Files / Backups) and keep the last 8.</p></div>`;
+  bind();
+}
+function bind(){
+  $("#saveAccess").onclick=async()=>{
+    const list=[...new Set($("#emails").value.split(/[\s,;]+/).map(lc).filter(e=>/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)))];
+    const m=$("#accessMsg");
+    try{ await db.doc("config/access").set({emails:list,updatedAt:nowIso(),updatedBy:me.email}); m.className="msg ok"; m.textContent=`Saved. ${list.length} email(s) can sign in.`; access.emails=list; }
+    catch(e){ m.className="msg bad"; m.textContent="Could not save: "+(e.message||e); }
+  };
+  document.querySelectorAll("[data-off]").forEach(b=>b.onclick=async()=>{
+    const id=b.dataset.off, set=new Set(roles.officeIds); set.has(id)?set.delete(id):set.add(id);
+    try{ await db.doc("config/roles").set({...roles,officeIds:[...set]}); await load(); }catch(e){ $("#roleMsg").className="msg bad"; $("#roleMsg").textContent="Could not save: "+(e.message||e); }
+  });
+  document.querySelectorAll("[data-ceo]").forEach(b=>b.onclick=async()=>{
+    if(roles.ceoId && !confirm("Replace the current CEO approver? Confirmations made by the old account stop counting.")) return;
+    try{ await db.doc("config/roles").set({...roles,ceoId:b.dataset.ceo,setAt:nowIso()}); await load(); }catch(e){ $("#roleMsg").className="msg bad"; $("#roleMsg").textContent="Could not save: "+(e.message||e); }
+  });
+  let data=null;
+  $("#file").onchange=async ev=>{
+    const f=ev.target.files[0]; const info=$("#impInfo"); data=null; $("#doImport").disabled=true; info.hidden=false;
+    try{
+      data=JSON.parse(await f.text());
+      if(data.format!=="24x-followup-export") throw new Error("This is not a 24X Follow-up export file.");
+      const nt=data.docs.filter(d=>d.path.startsWith("tasks/")).length, nb=Object.keys(data.blobs||{}).length;
+      info.innerHTML=`File from ${esc(String(data.exportedAt||"").slice(0,10))}: <b>${nt} tasks</b>, ${data.docs.length-nt} other records, <b>${nb} attached files</b>.<br>Decisions made by the CEO Office account in the old portal will be moved to <b>your</b> account (${esc(me.email)}).`;
+      $("#doImport").disabled=false;
+    }catch(e){ info.innerHTML=`<span style="color:var(--bad)">${esc(e.message||e)}</span>`; }
+  };
+  $("#doImport").onclick=async()=>{ if(data) await runImport(data); };
+}
+async function runImport(data){
+  const btn=$("#doImport"), log=$("#log"); btn.disabled=true; log.hidden=false; log.textContent="";
+  const say=t=>{ log.textContent+=t+"\n"; log.scrollTop=log.scrollHeight; };
+  try{
+    const oldOffice=new Set(data.officeIds||[]); const fromBackup=!!(oldOffice.size&&[...oldOffice].every(id=>!/^u_/.test(id))&&data.exportedBy===me.id);
+    const mapId=id=>(!fromBackup&&oldOffice.has(id))?me.id:id;
+    // 1. files
+    const blobs=data.blobs||{}; let done=0, skipped=0;
+    for(const [id,b] of Object.entries(blobs)){
+      const ex=await db.doc("blobs/"+id).get();
+      if(ex.exists){ skipped++; continue; }
+      const bin=atob(b.b64), u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
+      await window.__fbPutBlob(id,new Blob([u8],{type:b.type||"application/octet-stream"}),b.name);
+      done++; if(done%5===0) say(`Files: ${done} stored…`);
+    }
+    say(`Files: ${done} stored, ${skipped} already there.`);
+    // 2. records
+    const writes=[]; const names={};
+    for(const d of data.docs){
+      let path=d.path, v=JSON.parse(JSON.stringify(d.data));
+      if(path.startsWith("tasks/")){ (v.files||[]).forEach(f=>{ if((f.kind==="asset"||f.kind==="packed")&&f.id) f.url="fbblob:"+f.id; }); }
+      if(path.startsWith("approvals/")){
+        const p=path.split("/"); p[1]=mapId(p[1]);
+        if(p[1]!==me.id){ say(`Skipped a decision made by another account (${p[1]}): only that person can record it.`); continue; }
+        path=p.join("/");
+      }
+      if(path==="config/roles"){ const offs=[...new Set((v.officeIds||[]).map(mapId).filter(x=>!/^u_/.test(x)))]; if(!offs.includes(me.id)) offs.push(me.id); v={officeIds:offs,...(v.ceoId&&!/^u_/.test(v.ceoId)?{ceoId:v.ceoId}:{})}; }
+      if(path==="config/access"){ const cur=new Set(access.emails); (v.emails||[]).forEach(e=>cur.add(lc(e))); v={...v,emails:[...cur]}; }
+      if(path.startsWith("members/")){ const id=path.slice(8); if(v.names&&v.names[0]) names[id]=v.names[0]; }
+      writes.push([path,v]);
+    }
+    // legacy accounts keep their names in history
+    Object.entries(names).forEach(([id,n])=>{ if(/^u_/.test(id)) writes.push(["users/"+id,{name:n,legacy:true}]); });
+    let n=0;
+    for(let i=0;i<writes.length;i+=300){
+      const batch=db.batch(); writes.slice(i,i+300).forEach(([p,v])=>batch.set(db.doc(p),v)); await batch.commit(); n+=Math.min(300,writes.length-i); say(`Records: ${n} of ${writes.length} written…`);
+    }
+    const nt=writes.filter(w=>w[0].startsWith("tasks/")).length;
+    say(`Done. ${nt} tasks, ${writes.length-nt} other records, ${done} new files.`);
+    if(data.ceoId&&/^u_/.test(data.ceoId)) say("Note: the CEO approver must be set again below once the CEO has signed in.");
+    await load(); $("#log").hidden=false; $("#log").textContent=log.textContent;
+  }catch(e){ say("STOPPED: "+(e.message||e)+"\nNothing after this line was written. Fix the problem and run the import again."); btn.disabled=false; }
+}
+await load();
+})();
+</script>
+</body>
+</html>
