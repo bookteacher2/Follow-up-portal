@@ -26,6 +26,8 @@
 
 .star{color:#f5b301;text-shadow:0 0 1px rgba(0,0,0,.35);font-weight:400}
 .gstar{grid-row:1;align-self:center;justify-self:center;z-index:5;color:#f5b301;font-size:17px;line-height:1;text-shadow:0 0 2px #fff,0 0 1px rgba(0,0,0,.5);pointer-events:none}
+
+.seg .c.warn{background:var(--warn,#b26a00);color:#fff}
 </style></head><body>
 <title>24X CEO Follow-up</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -238,7 +240,7 @@ form.f{display:flex;flex-direction:column;gap:14px}
 .fr{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
 .pick{display:flex;gap:8px;flex-wrap:wrap}
 .pick label{flex:1 1 110px;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;font-weight:600;font-size:13.5px;display:flex;gap:8px;align-items:center;background:var(--surface)}
-.pick input{accent-color:var(--accent)}
+.pick input{accent-color:var(--accent);width:auto;padding:0;flex:none;margin:0}
 .pick label:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
 .pick label.r-ok:has(input:checked){border-color:var(--ok);background:var(--ok-soft)}
 .pick label.r-warn:has(input:checked){border-color:var(--warn);background:var(--warn-soft)}
@@ -1141,8 +1143,10 @@ function sheetTask(t){
       <button class="btn" data-act="mode" data-m="complete">Finished: submit for approval</button>
       ${!pr?`${ceo?`<button class="btn" data-act="mode" data-m="timeline">Change agreed date</button>`:""}<button class="btn bad" data-act="mode" data-m="close">${ceo||isOffice()?"Close task…":"Request to close…"}</button>`:""}</div>` : "";
   const nm=(t.milestones||[]).length;
-  const tabs=`<div class="seg" role="tablist"><button data-ptab="detail" aria-pressed="${S.ptab!=="plan"}">Details</button><button data-ptab="plan" aria-pressed="${S.ptab==="plan"}">Plan and meetings${nm?`<span class="c">${nm}</span>`:""}</button></div>`;
+  const nq=(t.qa||[]).length, nqOpen=(t.qa||[]).filter(q=>!q.answer).length;
+  const tabs=`<div class="seg" role="tablist"><button data-ptab="detail" aria-pressed="${S.ptab!=="plan"&&S.ptab!=="qa"}">Details</button><button data-ptab="plan" aria-pressed="${S.ptab==="plan"}">Plan and meetings${nm?`<span class="c">${nm}</span>`:""}</button><button data-ptab="qa" aria-pressed="${S.ptab==="qa"}">Questions and comments${nq?`<span class="c${nqOpen?" warn":""}" title="${nqOpen} waiting for reply">${nqOpen?nqOpen+" open":nq}</span>`:""}</button></div>`;
   if(S.ptab==="plan") return `${head(esc(t.topic), `${esc(t.ref||"")} · ${esc(t.category||"")}`)}<div class="sheet-b">${tabs}${planPanel(t,act)}</div>`;
+  if(S.ptab==="qa") return `${head(esc(t.topic), `${esc(t.ref||"")} · ${esc(t.category||"")}`)}<div class="sheet-b">${tabs}${qaCard(t,w)}</div>`;
   return `${head(esc(t.topic), `${esc(t.ref||"")} · ${esc(t.category||"")}`)}
   <div class="sheet-b">
     ${tabs}
@@ -1151,7 +1155,6 @@ function sheetTask(t){
     ${e==="returned"&&a?`<div class="banner warn"><b>Returned by the CEO ${fmtD(a.at)}:</b> ${esc(a.comment||"No comment")}</div>`:""}
     ${health(t).needDate&&act?`<div class="banner warn" style="background:var(--bad-soft);color:var(--bad)"><b>${health(t).forecast?`The new date ${fmtD(health(t).forecast)} has passed.`:`${health(t).lateBy} days past the agreed date.`}</b> Post an update with a new finish date.</div>`:""}
     ${top}${actions}
-    ${qaCard(t,w)}
     ${c?`<div class="card"><h4>Completion evidence</h4><dl class="kv">
       <dt>Submitted by</dt><dd>${esc(name(c.by))}, ${fmtD(c.submittedAt)}</dd>
       <dt>Result</dt><dd>${esc(c.note||"—")}</dd>
@@ -1289,7 +1292,7 @@ function prevUpdates(t){
 function sheetUpdate(t){
   const lu=lastUpdate(t), hl=lastHealth(t)||"on_track";
   return `${head("Update progress", esc(t.ref)+" · "+esc(t.topic), true)}
-  <div class="sheet-b">${prevUpdates(t)}<form class="f" id="upd">
+  <div class="sheet-b"><div class="seg" role="tablist"><button aria-pressed="true">Update progress</button><button data-ptab="detail">Details</button><button data-ptab="plan">Plan and meetings</button><button data-ptab="qa">Questions and comments${(t.qa||[]).filter(q=>!q.answer).length?`<span class="c warn">${(t.qa||[]).filter(q=>!q.answer).length} open</span>`:""}</button></div>${prevUpdates(t)}<form class="f" id="upd">
     <div class="fld"><span class="lbl">How is it going?</span><div class="pick">
       <label class="r-ok"><input type="radio" name="u_h" value="on_track" ${hl==="on_track"?"checked":""}>On track</label>
       <label class="r-warn"><input type="radio" name="u_h" value="at_risk" ${hl==="at_risk"?"checked":""}>At risk</label>
@@ -1530,12 +1533,16 @@ document.addEventListener("click", async ev=>{
   if(el.dataset.fpic!==undefined || el.dataset.fpillar!==undefined || (el.tagName==="A"&&el.dataset.fs)){ S.f={q:el.dataset.fq||"",status:el.dataset.fs||"",bu:"",pillar:el.dataset.fpillar||"",pic:el.dataset.fpic||"",cat:""}; return; }
   if(el.dataset.goto){ S.f={q:"",status:el.dataset.fs||"",bu:S.f.bu,pillar:"",pic:"",cat:""}; location.hash=el.dataset.goto; return; }
   if(el.dataset.update){ ev.preventDefault(); S.open=el.dataset.update; S.mode="update"; render(true); return; }
-  if(el.dataset.open){ ev.preventDefault(); S.open=el.dataset.open; S.mode="view"; S.ptab=el.dataset.ptabOpen?"plan":"detail"; S.pday=null; S.psel=null; render(true); return; }
+  if(el.dataset.open){ ev.preventDefault(); S.open=el.dataset.open; S.mode="view"; S.ptab=el.dataset.ptabOpen?"plan":"detail"; S.pday=null; S.psel=null;
+    // The PIC or support of an open task lands straight on "Update progress"
+    if(!S.myNames && S.membersLoaded && !S.autoTried){ const c=emailNameMatches(); if(c.length===1){ S.autoTried=true; S.myNames=c[0]; saveMyNames(c[0]); } }
+    const ot=S.tasks.find(x=>x.id===S.open); if(!el.dataset.ptabOpen && ot && canWrite() && !isCeo() && myRole(ot) && ACTIVE.includes(eff(ot))) S.mode="update";
+    render(true); return; }
   if(el.dataset.wscope){ S.weekScope=el.dataset.wscope; render(true); return; }
   if(el.dataset.pitem){ S.psel=el.dataset.pitem; render(true); return; }
   if(el.dataset.pday){ if(!canWrite()) return; S.pday=el.dataset.pday; S.psel=null; render(true); setTimeout(()=>{ $("#msadd")?.scrollIntoView({behavior:"smooth",block:"start"}); $("#ms_title")?.focus(); },60); return; }
   if(el.dataset.pcalnav!==undefined){ const n=+el.dataset.pcalnav, now=new Date(); if(!n) Object.assign(S.pcal,{y:now.getFullYear(),m:now.getMonth()}); else { const d=new Date(S.pcal.y,S.pcal.m+n,1); Object.assign(S.pcal,{y:d.getFullYear(),m:d.getMonth()}); } render(true); return; }
-  if(el.dataset.ptab){ S.ptab=el.dataset.ptab; render(true); return; }
+  if(el.dataset.ptab){ S.ptab=el.dataset.ptab; if(S.mode==="update") S.mode="view"; render(true); return; }
   if(el.dataset.copy){ const p=el.dataset.copy, arr=reminderGroups().find(x=>x[0]===p)[1], txt=reminderText(p,arr);
     try{ await navigator.clipboard.writeText(txt); toast("Message copied"); }catch(e){ $("#lb").innerHTML=`<div class="scrim"><div class="sheet gut"><div class="sheet-h"><h2>Copy this message</h2><button class="x" data-act="closecopy">×</button></div><div class="sheet-b"><div class="pre" id="cp">${esc(txt)}</div></div></div></div>`; const r=document.createRange(); r.selectNodeContents($("#cp")); getSelection().removeAllRanges(); getSelection().addRange(r); } return; }
   if(el.dataset.mail){ el.disabled=true; try{ await sendMail(el.dataset.mail); toast("Email sent to "+el.dataset.mail); el.textContent="Sent"; }catch(e){ el.disabled=false; toast(e&&e.code==="not_granted"?"Outlook access wasn't allowed.":"Couldn't send. Check the Microsoft 365 connection."); } return; }
@@ -1683,7 +1690,7 @@ async function boot(){
   let got=0; const ready=()=>{ if(++got>=3) S.loaded=true; render(); };
   db.collection("tasks").onSnapshot(snap=>{ S.tasks=snap.docs.map(d=>({id:d.id,...d.data()})); ready(); resolveProfiles(); }, e=>{ S.loaded=true; render(); });
   db.doc("config/roles").onSnapshot(s=>{ S.roles=s.exists?{...s.data()}:{}; const id=S.roles.ceoId||null, offs=S.roles.officeIds||[]; if(id!==S.ceoId||offs.join()!==S.officeIds.join()){ S.ceoId=id; S.officeIds=offs; subAppr(); resolveProfiles(); } ready(); });
-  db.collection("members").onSnapshot(snap=>{ const m={}; snap.docs.forEach(d=>{ m[d.id]=d.data(); }); S.members=m; if(S.me?.id&&m[S.me.id]&&S.myNames==null) S.myNames=m[S.me.id].names||null; ready(); resolveProfiles(); });
+  db.collection("members").onSnapshot(snap=>{ const m={}; snap.docs.forEach(d=>{ m[d.id]=d.data(); }); S.members=m; S.membersLoaded=true; if(S.me?.id&&m[S.me.id]&&S.myNames==null) S.myNames=m[S.me.id].names||null; ready(); resolveProfiles(); });
   db.doc("config/roadmap").onSnapshot(s=>{ S.roadmap=s.exists?s.data():null; render(); });
   db.doc("config/directory").onSnapshot(s=>{ S.directory=s.exists?(s.data().people||[]):[]; render(); });
   db.doc("config/settings").onSnapshot(s=>{ S.live=!!(s.exists&&s.data().live); S.liveAt=s.exists?s.data().liveAt:""; render(); });
