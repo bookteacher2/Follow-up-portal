@@ -149,7 +149,11 @@
   }
   async function putBlob(id, blob, name) {
     const b64 = await toB64(blob); const n = Math.max(1, Math.ceil(b64.length / PART));
-    for (let i = 0; i < n; i++) await fs.doc(`blobs/${id}/p/${String(i).padStart(4, "0")}`).set({ d: b64.slice(i * PART, (i + 1) * PART) });
+    for (let i = 0; i < n; i++) {
+      const ref = fs.doc(`blobs/${id}/p/${String(i).padStart(4, "0")}`);
+      const ex = await ref.get(); if (ex.exists) continue; // left by an earlier, interrupted upload: keep it
+      await ref.set({ d: b64.slice(i * PART, (i + 1) * PART) });
+    }
     await fs.doc("blobs/" + id).set({ type: blob.type || "application/octet-stream", size: blob.size, parts: n, name: name || "", by: me ? me.uid : "", at: new Date().toISOString() });
   }
   const blobCache = {};
